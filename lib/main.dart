@@ -7,8 +7,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cam/components/user_widget.dart';
+import 'package:cam/screens/a_screen.dart';
+import 'package:cam/components/list_appointments.dart';
 import 'package:image/image.dart' as img;
-
 
 import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
@@ -16,6 +17,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
+import 'models/main_model.dart';
 
 /// Camera example home widget.
 class CameraExampleHome extends StatefulWidget {
@@ -52,8 +56,7 @@ void _logError(String code, String? message) {
 
 class _CameraExampleHomeState extends State<CameraExampleHome>
     with WidgetsBindingObserver, TickerProviderStateMixin {
-   late List<dynamic> myProducts = [];
-
+  late List<dynamic> myProducts = [];
 
   CameraController? controller;
   XFile? imageFile;
@@ -69,7 +72,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
   double _baseScale = 1.0;
 
   int _pointers = 0;
-
 
   @override
   void initState() {
@@ -114,6 +116,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
       onNewCameraSelected(cameraController.description);
     }
   }
+
   // #enddocregion AppLifecycle
 
   @override
@@ -122,7 +125,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
       // appBar: AppBar(
       //   backgroundColor: Color.fromRGBO(161,217,54, 100),
       //   title: const Text('Camera Scan'),
-     // ),
+      // ),
       body: Column(
         children: <Widget>[
           Row(
@@ -133,18 +136,25 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                 decoration: BoxDecoration(
                   color: Colors.black,
                 ),
-                child: Stack(
-                  children:[ Padding(
+                child: Stack(children: [
+                  Padding(
                     padding: const EdgeInsets.all(1.0),
                     child: Center(
                       child: _cameraPreviewWidget(),
                     ),
                   ),
-                    Positioned(
-                      left: 260,
-                      top: 480,
-                      child: controller == null ? _cameraTogglesRowWidget() : _captureControlRowWidget(),
-                    ),
+                  Positioned(
+                    left: 260,
+                    top: 480,
+                    child: controller == null
+                        ? _cameraTogglesRowWidget()
+                        : _captureControlRowWidget(),
+                  ),
+                  controller == null ? Container() : Positioned(
+                    left: 350,
+                    top: 480,
+                    child: _list() ,
+                  ),
                 ]),
               ),
               SizedBox(
@@ -159,11 +169,11 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                           physics: NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
                           itemCount: myProducts.length,
-                          itemBuilder: (context, index){
+                          itemBuilder: (context, index) {
                             var my = myProducts.reversed.toList();
 
                             print((my[index]));
-                            return  UserWidget(my[index]);
+                            return UserWidget(my[index]);
                           })
                     ],
                   ),
@@ -175,9 +185,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
             padding: const EdgeInsets.all(5.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[
-
-              ],
+              children: <Widget>[],
             ),
           ),
         ],
@@ -200,12 +208,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
       );
     } else {
       return Listener(
-        onPointerDown: (_) => _pointers++,
-        onPointerUp: (_) => _pointers--,
-        child: CameraPreview(
-        controller!,
-        child: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
+          onPointerDown: (_) => _pointers++,
+          onPointerUp: (_) => _pointers--,
+          child: CameraPreview(
+            controller!,
+            child: LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onScaleStart: _handleScaleStart,
@@ -214,8 +222,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                     onViewFinderTap(details, constraints),
               );
             }),
-          )
-      );
+          ));
     }
   }
 
@@ -235,20 +242,29 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     await controller!.setZoomLevel(_currentScale);
   }
 
+  Widget _list() {
+    return IconButton(
+        splashColor: Colors.white,
+        icon: const Icon(Icons.request_page),
+        color: Colors.white,
+        onPressed: () {
+          Navigator.pushNamed(context, AScreen.id);
+        });
+  }
 
   /// Display the control bar with buttons to take pictures and record videos.
   Widget _captureControlRowWidget() {
     final CameraController? cameraController = controller;
 
     return IconButton(
-          splashColor: Colors.white,
-          icon: const Icon(Icons.camera_alt),
-          color: Colors.white,
-          onPressed: cameraController != null &&
+      splashColor: Colors.white,
+      icon: const Icon(Icons.camera_alt),
+      color: Colors.white,
+      onPressed: cameraController != null &&
               cameraController.value.isInitialized &&
               !cameraController.value.isRecordingVideo
-              ? onTakePictureButtonPressed
-              : null,
+          ? onTakePictureButtonPressed
+          : null,
     );
   }
 
@@ -275,13 +291,16 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
           SizedBox(
             width: 90.0,
             child: RadioListTile<CameraDescription>(
-              title: Icon(getCameraLensIcon(cameraDescription.lensDirection), color: Colors.white,),
+              title: Icon(
+                getCameraLensIcon(cameraDescription.lensDirection),
+                color: Colors.white,
+              ),
               groupValue: controller?.description,
               value: cameraDescription,
               onChanged:
-              controller != null && controller!.value.isRecordingVideo
-                  ? null
-                  : onChanged,
+                  controller != null && controller!.value.isRecordingVideo
+                      ? null
+                      : onChanged,
             ),
           ),
         );
@@ -294,8 +313,10 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
   String timestamp() => DateTime.now().millisecondsSinceEpoch.toString();
 
   void showInSnackBar(String message, [int second = 3]) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message), duration: Duration(seconds: second),));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      duration: Duration(seconds: second),
+    ));
   }
 
   void onViewFinderTap(TapDownDetails details, BoxConstraints constraints) {
@@ -362,26 +383,26 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
           showInSnackBar('You have denied camera access.');
           break;
         case 'CameraAccessDeniedWithoutPrompt':
-        // iOS only
+          // iOS only
           showInSnackBar('Please go to Settings app to enable camera access.');
           break;
         case 'CameraAccessRestricted':
-        // iOS only
+          // iOS only
           showInSnackBar('Camera access is restricted.');
           break;
         case 'AudioAccessDenied':
           showInSnackBar('You have denied audio access.');
           break;
         case 'AudioAccessDeniedWithoutPrompt':
-        // iOS only
+          // iOS only
           showInSnackBar('Please go to Settings app to enable audio access.');
           break;
         case 'AudioAccessRestricted':
-        // iOS only
+          // iOS only
           showInSnackBar('Audio access is restricted.');
           break;
         case 'cameraPermission':
-        // Android & web only
+          // Android & web only
           showInSnackBar('Unknown permission error.');
           break;
         default:
@@ -404,7 +425,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
         if (xfile != null) {
           showInSnackBar('Обработка снимка...', 1);
 
-
           var _bytes = await xfile.readAsBytes();
           String url = 'https://alnezis.riznex.ru:1337/checkFace';
           var response = await Dio().post(url, data: _bytes);
@@ -420,18 +440,17 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
           var data = response.data["result"];
 
           if (data["id"] == "") {
-          showInSnackBar("Лицо не обнаружено в базе данных.");
+            showInSnackBar("Лицо не обнаружено в базе данных.");
           }
 
-         // Map valueMap = json.decode(data);
+          // Map valueMap = json.decode(data);
 
           final DateFormat formatter = DateFormat('dd.MM.yyyy, HH:mm:ss');
           final String formattedTime = formatter.format(DateTime.now());
 
-
           data["time"] = formattedTime;
           myProducts.add(data);
-         // myProducts.sort((a, b) => a.length.compareTo(b["time"]));
+          // myProducts.sort((a, b) => a.length.compareTo(b["time"]));
 
           setState(() {
             dynamic d = myProducts.length;
@@ -469,7 +488,6 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     }
   }
 
-
   Future<XFile?> takePicture() async {
     final CameraController? cameraController = controller;
     if (cameraController == null || !cameraController.value.isInitialized) {
@@ -504,10 +522,14 @@ class CameraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: CameraExampleHome(),
-    );
+    return ChangeNotifierProvider<MainModel>(
+        create: (context) => MainModel(),
+        child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: CameraExampleHome(),
+            routes: {
+              'appointments_screen': (context) => AScreen(),
+            }));
   }
 }
 
